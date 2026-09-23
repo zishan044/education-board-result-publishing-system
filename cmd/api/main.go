@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
+	"github.com/zishan044/education-board-result-publishing-system/internal/api"
 	"github.com/zishan044/education-board-result-publishing-system/internal/config"
+	"github.com/zishan044/education-board-result-publishing-system/internal/store"
 )
 
 func main() {
@@ -32,11 +32,15 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	router := gin.New()
+	st, err := store.New(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+
+	handler := api.NewHandler(st, cfg.RequestTimeout)
 	
-	router.GET("/health", func(c *gin.Context) {
-		c.String(http.StatusOK, "OK")
-	})
+	router := api.NewRouter(handler)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

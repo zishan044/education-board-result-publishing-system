@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
 	HTTPAddr       string
 	DatabaseURL    string
 	DBMaxConns     int32
+	RequestTimeout time.Duration
 }
 
 func Load() (Config, error) {
@@ -28,6 +30,11 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("invalid DB_MAX_CONNS")
 	}
 	cfg.DBMaxConns = int32(n)
+
+	cfg.RequestTimeout, err = time.ParseDuration(getenv("REQUEST_TIMEOUT", "2s"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid REQUEST_TIMEOUT: %w", err)
+	}
 	
 	return cfg, nil
 }
