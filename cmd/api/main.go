@@ -10,8 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/zishan044/education-board-result-publishing-system/internal/api"
+	"github.com/zishan044/education-board-result-publishing-system/internal/cache"
 	"github.com/zishan044/education-board-result-publishing-system/internal/config"
+	"github.com/zishan044/education-board-result-publishing-system/internal/middleware"
 	"github.com/zishan044/education-board-result-publishing-system/internal/store"
 )
 
@@ -39,8 +42,21 @@ func run() error {
 	defer st.Close()
 
 	handler := api.NewHandler(st, cfg.RequestTimeout)
-	
-	router := api.NewRouter(handler)
+
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.ValkeyAddr})
+	ch := cache.New(rdb)
+
+	ipFilter, err := middleware.NewIPFilter(cfg.BlockedCIDRs, nil, ch)
+	if err != nil {
+		return err
+	}
+
+	rateLimiter := middleware.NewRateLimiter(rdb, 20, time.Minute)
+
+	router := api.NewRouter(handler,
+		ipFilter.Handler(),
+		rateLimiter.Handler(),
+	)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

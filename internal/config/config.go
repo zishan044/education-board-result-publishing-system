@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,12 +14,16 @@ type Config struct {
 	DatabaseURL    string
 	DBMaxConns     int32
 	RequestTimeout time.Duration
+	ValkeyAddr	 string
+	BlockedCIDRs []string
 }
 
 func Load() (Config, error) {
 	cfg := Config{
 		HTTPAddr:    getenv("HTTP_ADDR", ":8080"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
+		ValkeyAddr:  getenv("VALKEY_ADDR", "localhost:6379"),
+		BlockedCIDRs: strings.Split(os.Getenv("BLOCKED_CIDRS"), ","),
 	}
 
 	if cfg.DatabaseURL == "" {
