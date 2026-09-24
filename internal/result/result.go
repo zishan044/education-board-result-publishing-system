@@ -1,5 +1,7 @@
 package result
 
+import "fmt"
+
 type Subject struct {
 	Name  string `json:"subject"`
 	Marks int    `json:"marks"`
@@ -27,4 +29,14 @@ type Key struct {
 	Board        string
 	Roll         int32
 	Registration int64
+}
+
+func (k Key) PDFPath() string {
+	rollStr := fmt.Sprintf("%d", k.Roll)
+	prefix := rollStr
+	if len(prefix) > 3 {
+		prefix = prefix[:3]
+	}
+	return fmt.Sprintf("%s/%d/%s/%s-%d-%d-%d.pdf",
+		k.Board, k.ExamYear, prefix, k.Board, k.ExamYear, k.Roll, k.Registration)
 }

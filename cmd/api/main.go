@@ -42,6 +42,7 @@ func run() error {
 	defer st.Close()
 
 	handler := api.NewHandler(st, cfg.RequestTimeout)
+	pdfHandler := api.NewPDFHandler(st, cfg.PDFRoot, cfg.RequestTimeout)
 
 	rdb := redis.NewClient(&redis.Options{Addr: cfg.ValkeyAddr})
 	ch := cache.New(rdb)
@@ -53,7 +54,7 @@ func run() error {
 
 	rateLimiter := middleware.NewRateLimiter(rdb, 20, time.Minute)
 
-	router := api.NewRouter(handler,
+	router := api.NewRouter(handler, pdfHandler,
 		ipFilter.Handler(),
 		rateLimiter.Handler(),
 	)

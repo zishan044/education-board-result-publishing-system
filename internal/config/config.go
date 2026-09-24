@@ -16,6 +16,7 @@ type Config struct {
 	RequestTimeout time.Duration
 	ValkeyAddr	 string
 	BlockedCIDRs []string
+	PDFRoot string
 }
 
 func Load() (Config, error) {
@@ -24,6 +25,7 @@ func Load() (Config, error) {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		ValkeyAddr:  getenv("VALKEY_ADDR", "localhost:6379"),
 		BlockedCIDRs: strings.Split(os.Getenv("BLOCKED_CIDRS"), ","),
+		PDFRoot: getenv("PDF_ROOT", "./pdfs"),
 	}
 
 	if cfg.DatabaseURL == "" {
