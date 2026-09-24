@@ -1,0 +1,56 @@
+services:
+  postgres:
+      image: postgres:18.6-alpine3.24
+      container_name: ebrps_postgres
+      restart: unless-stopped
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER:-results}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB: ${POSTGRES_DB:-results}
+      ports:
+        - "5432:5432"
+      volumes:
+        - pgdata:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-results} -d ${POSTGRES_DB:-results}"]
+        interval: 5s
+        timeout: 3s
+        retries: 10
+      networks:
+        - ebrps
+
+  valkey:
+    image: valkey/valkey:9.0-alpine3.24
+    container_name: ebrps_valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ebrps
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ebrps-api:latest
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-results}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-results}?sslmode=disable
+      VALKEY_ADDR: valkey:6379
+      HTTP_ADDR: ":8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    networks:
+      - ebrps
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
