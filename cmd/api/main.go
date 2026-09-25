@@ -47,6 +47,8 @@ func run() error {
 	rdb := redis.NewClient(&redis.Options{Addr: cfg.ValkeyAddr})
 	ch := cache.New(rdb)
 
+	statsHandler := api.NewStatsHandler(st, ch, cfg.CacheTTL, cfg.RequestTimeout)
+
 	ipFilter, err := middleware.NewIPFilter(cfg.BlockedCIDRs, nil, ch)
 	if err != nil {
 		return err
@@ -54,7 +56,7 @@ func run() error {
 
 	rateLimiter := middleware.NewRateLimiter(rdb, 20, time.Minute)
 
-	router := api.NewRouter(handler, pdfHandler,
+	router := api.NewRouter(handler, pdfHandler, statsHandler,
 		ipFilter.Handler(),
 		rateLimiter.Handler(),
 	)

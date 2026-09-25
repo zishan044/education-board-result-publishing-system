@@ -17,6 +17,7 @@ type Config struct {
 	ValkeyAddr	 string
 	BlockedCIDRs []string
 	PDFRoot string
+	CacheTTL time.Duration
 }
 
 func Load() (Config, error) {
@@ -42,7 +43,12 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid REQUEST_TIMEOUT: %w", err)
 	}
-	
+
+	cfg.CacheTTL, err = time.ParseDuration(getenv("CACHE_TTL", "5m"))
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid CACHE_TTL: %w", err)
+	}
+
 	return cfg, nil
 }
 

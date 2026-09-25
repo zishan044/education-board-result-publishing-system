@@ -19,7 +19,6 @@ import (
 	"github.com/zishan044/education-board-result-publishing-system/internal/store"
 )
 
-// ResultGetter is defined here, by the consumer. *store.Store satisfies it.
 type ResultGetter interface {
 	Get(ctx context.Context, k result.Key) (*result.Result, error)
 }
