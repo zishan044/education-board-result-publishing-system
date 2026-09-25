@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/zishan044/education-board-result-publishing-system/internal/render"
+	"github.com/zishan044/education-board-result-publishing-system/internal/config"
 	"github.com/zishan044/education-board-result-publishing-system/internal/result"
 	"github.com/zishan044/education-board-result-publishing-system/internal/store"
 )
 
 func main() {
 	var (
-		dbURL     = flag.String("db", os.Getenv("DATABASE_URL"), "Postgres connection string")
+		dbURL     = flag.String("db", config.DatabaseURLFromEnv(), "Postgres connection string")
 		out       = flag.String("out", "./site", "output directory for the static site")
 		exam      = flag.String("exam", "SSC", "exam name")
 		year      = flag.Int("year", 2026, "exam year")

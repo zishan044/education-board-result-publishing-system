@@ -47,7 +47,7 @@ func run() error {
 	rdb := redis.NewClient(&redis.Options{Addr: cfg.ValkeyAddr})
 	ch := cache.New(rdb)
 
-	statsHandler := api.NewStatsHandler(st, ch, cfg.CacheTTL, cfg.RequestTimeout)
+	statsHandler := api.NewStatsHandler(st, ch, cfg.StatsCacheTTL, cfg.RequestTimeout)
 
 	ipFilter, err := middleware.NewIPFilter(cfg.BlockedCIDRs, nil, ch)
 	if err != nil {

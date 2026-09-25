@@ -1,7 +1,7 @@
 -include .env
 export
 
-DB_URL  := postgres://zishan044:$(POSTGRES_PASSWORD)@localhost:5432/results?sslmode=disable
+DB_URL  := postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/$(POSTGRES_DB)?sslmode=disable
 GOOSE   := goose -dir ./migrations postgres "$(DB_URL)"
 COMPOSE := docker compose -f deploy/docker-compose.yml --env-file .env
 

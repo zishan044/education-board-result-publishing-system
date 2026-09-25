@@ -8,6 +8,7 @@ import (
 	"github.com/zishan044/education-board-result-publishing-system/internal/result"
 )
 
+//go:embed templates/*.html
 var templateFS embed.FS
 
 var funcs = template.FuncMap{

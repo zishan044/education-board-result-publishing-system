@@ -21,7 +21,6 @@ func NewRouter(h *Handler, pdfHandler *PDFHandler, statsHandler *StatsHandler, m
 	v1 := r.Group("/api/v1", mw...)
 	v1.GET("/results", h.GetResult)
 	v1.GET("/stats", statsHandler.GetStats)
-	
 
 	return r
 }

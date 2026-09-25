@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"net"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -17,15 +19,21 @@ type Config struct {
 	ValkeyAddr	 string
 	BlockedCIDRs []string
 	PDFRoot string
-	CacheTTL time.Duration
+	StatsCacheTTL time.Duration
 }
 
 func Load() (Config, error) {
+
+	blockedCIDRs := []string{}
+	if value := os.Getenv("BLOCKED_CIDRS"); value != "" {
+		blockedCIDRs = strings.Split(value, ",")
+	}
+
 	cfg := Config{
 		HTTPAddr:    getenv("HTTP_ADDR", ":8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		DatabaseURL: DatabaseURLFromEnv(),
 		ValkeyAddr:  getenv("VALKEY_ADDR", "localhost:6379"),
-		BlockedCIDRs: strings.Split(os.Getenv("BLOCKED_CIDRS"), ","),
+		BlockedCIDRs: blockedCIDRs,
 		PDFRoot: getenv("PDF_ROOT", "./pdfs"),
 	}
 
@@ -44,12 +52,31 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("invalid REQUEST_TIMEOUT: %w", err)
 	}
 
-	cfg.CacheTTL, err = time.ParseDuration(getenv("CACHE_TTL", "5m"))
+	cfg.StatsCacheTTL, err = time.ParseDuration(getenv("CACHE_TTL", "5m"))
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid CACHE_TTL: %w", err)
 	}
 
 	return cfg, nil
+}
+
+func DatabaseURLFromEnv() string {
+	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
+		return dsn
+	}
+	password, ok := os.LookupEnv("POSTGRES_PASSWORD")
+	if !ok || password == "" {
+		return ""
+	}
+	user := getenv("POSTGRES_USER", "zishan044")
+	database := getenv("POSTGRES_DB", "results")
+	host := getenv("POSTGRES_HOST", "postgres")
+	port := getenv("POSTGRES_PORT", "5432")
+	u := &url.URL{Scheme: "postgres", User: url.UserPassword(user, password), Host: net.JoinHostPort(host, port), Path: database}
+	query := u.Query()
+	query.Set("sslmode", "disable")
+	u.RawQuery = query.Encode()
+	return u.String()
 }
 
 func getenv(key, fallback string) string {
