@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: api
+    metrics_path: /metrics
+    static_configs:
+      - targets: [api:8080]
+  - job_name: postgres
+    static_configs:
+      - targets: [postgres_exporter:9187]
+  - job_name: valkey
+    static_configs:
+      - targets: [redis_exporter:9121]
+  - job_name: nginx
+    static_configs:
+      - targets: [nginx_exporter:9113]

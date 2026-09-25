@@ -1,0 +1,166 @@
+services:
+  postgres:
+    image: postgres:18.6-alpine3.24
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-results} -d ${POSTGRES_DB:-results}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [ebrps]
+
+  valkey:
+    image: valkey/valkey:9.0-alpine3.24
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [ebrps]
+
+  migrate:
+    image: ebrps-app:latest
+    env_file: ../.env
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["exec /app/goose -dir=/migrations postgres \"postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@postgres:5432/$${POSTGRES_DB}?sslmode=disable\" up"]
+    volumes:
+      - ../migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [ebrps]
+    restart: "no"
+
+  loader:
+    image: ebrps-app:latest
+    env_file: ../.env
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["exec /app/loader -count=\"$${RESULT_COUNT:-100000}\" -exam=\"$${EXAM:-SSC}\" -year=\"$${EXAM_YEAR:-2026}\" -if-empty -sample-out=/tmp/keys.json"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [ebrps]
+    restart: "no"
+
+  sitegen:
+    image: ebrps-app:latest
+    env_file: ../.env
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["exec /app/sitegen -out=/site -exam=\"$${EXAM:-SSC}\" -year=\"$${EXAM_YEAR:-2026}\""]
+    volumes:
+      - site_data:/site
+    depends_on:
+      loader:
+        condition: service_completed_successfully
+    networks: [ebrps]
+    restart: "no"
+
+  api:
+    image: ebrps-app:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    env_file: ../.env
+    environment:
+      VALKEY_ADDR: valkey:6379
+      HTTP_ADDR: ":8080"
+      PDF_ROOT: /pdfs
+    volumes:
+      - pdf_data:/pdfs
+    depends_on:
+      sitegen:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks: [ebrps]
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+
+  nginx:
+    image: nginx:1.31.6-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - site_data:/usr/share/nginx/site:ro
+      - pdf_data:/usr/share/nginx/pdfs:ro
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [ebrps]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
+    networks: [ebrps]
+
+  grafana:
+    image: grafana/grafana-oss:11.4.0
+    env_file: ../.env
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["export GF_SECURITY_ADMIN_PASSWORD=\"$${GRAFANA_ADMIN_PASSWORD:-admin}\"; exec /run.sh"]
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus]
+    networks: [ebrps]
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    env_file: ../.env
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["export DATA_SOURCE_NAME=\"postgresql://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@postgres:5432/$${POSTGRES_DB}?sslmode=disable\"; exec /bin/postgres_exporter"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [ebrps]
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.67.0-alpine
+    environment:
+      REDIS_ADDR: valkey:6379
+    depends_on:
+      valkey:
+        condition: service_healthy
+    networks: [ebrps]
+
+  nginx_exporter:
+    image: nginx/nginx-prometheus-exporter:1.3.0
+    command: ["--nginx.scrape-uri=http://nginx:8081/stub_status"]
+    depends_on: [nginx]
+    networks: [ebrps]
+
+volumes:
+  pgdata:
+  valkeydata:
+  site_data:
+  pdf_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  ebrps:
