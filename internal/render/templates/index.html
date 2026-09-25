@@ -1,0 +1,53 @@
+{{define "title"}}Check Your Result{{end}}
+{{define "content"}}
+<div class="card">
+  <form id="search-form">
+    <label for="exam">Exam</label>
+    <select id="exam" name="exam"><option value="SSC">SSC</option></select>
+
+    <label for="year">Year</label>
+    <select id="year" name="year">
+      {{range .Years}}<option value="{{.}}">{{.}}</option>{{end}}
+    </select>
+
+    <label for="board">Board</label>
+    <select id="board" name="board">
+      {{range .Boards}}<option value="{{.}}">{{.}}</option>{{end}}
+    </select>
+
+    <label for="roll">Roll Number</label>
+    <input id="roll" inputmode="numeric" pattern="[0-9]+" required>
+
+    <label for="registration">Registration Number</label>
+    <input id="registration" inputmode="numeric" pattern="[0-9]+" required>
+
+    <button type="submit">View Result</button>
+    <p class="muted" id="error" style="color:var(--fail);display:none"></p>
+  </form>
+</div>
+<div class="actions">
+  <a href="/stats.html">View Board Statistics</a>
+</div>
+{{end}}
+{{define "script"}}
+<script>
+document.getElementById('search-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const exam = document.getElementById('exam').value;
+  const year = document.getElementById('year').value;
+  const board = document.getElementById('board').value;
+  const roll = document.getElementById('roll').value.trim();
+  const registration = document.getElementById('registration').value.trim();
+  const err = document.getElementById('error');
+
+  if (!/^\d+$/.test(roll) || !/^\d+$/.test(registration)) {
+    err.textContent = 'Roll and registration must contain digits only.';
+    err.style.display = 'block';
+    return;
+  }
+  const prefix = roll.length > 3 ? roll.slice(0, 3) : roll;
+  window.location.href =
+    `/results/${board}/${year}/${prefix}/${board}-${year}-${roll}-${registration}.html`;
+});
+</script>
+{{end}}

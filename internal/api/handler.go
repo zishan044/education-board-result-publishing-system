@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zishan044/education-board-result-publishing-system/internal/cache"
 	"github.com/zishan044/education-board-result-publishing-system/internal/pdfgen"
+	"github.com/zishan044/education-board-result-publishing-system/internal/render"
 	"github.com/zishan044/education-board-result-publishing-system/internal/result"
 	"github.com/zishan044/education-board-result-publishing-system/internal/store"
 )
@@ -215,4 +217,89 @@ func (h *StatsHandler) GetStats(c *gin.Context) {
 
 	c.Header("Cache-Control", "public, max-age=60")
 	c.JSON(http.StatusOK, st)
+}
+
+type ResultHTMLHandler struct {
+	results    ResultGetter
+	resultRoot string
+	timeout    time.Duration
+}
+
+func NewResultHTMLHandler(r ResultGetter, resultRoot string, timeout time.Duration) *ResultHTMLHandler {
+	return &ResultHTMLHandler{results: r, resultRoot: resultRoot, timeout: timeout}
+}
+
+const notFoundPage = `<!doctype html><html><head><meta charset="utf-8">
+<title>Result Not Found</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:60px">
+<h1>Result not found</h1>
+<p>Double check your roll and registration number, or the result may not be published yet.</p>
+<a href="/">Back to search</a></body></html>`
+
+func (h *ResultHTMLHandler) RenderResult(c *gin.Context) {
+	rawPath := strings.TrimPrefix(c.Param("path"), "/")
+	key, err := parseResultFilename(rawPath)
+	if err != nil {
+		c.String(http.StatusBadRequest, "malformed result path")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), h.timeout)
+	defer cancel()
+
+	res, err := h.results.Get(ctx, key)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.String(http.StatusNotFound, notFoundPage)
+		return
+	case err != nil:
+		slog.Error("get result for html", "err", err)
+		c.String(http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	var buf bytes.Buffer
+	if err := render.Result(&buf, res); err != nil {
+		slog.Error("render result html", "err", err)
+		c.String(http.StatusInternalServerError, "render error")
+		return
+	}
+
+	fullPath := filepath.Join(h.resultRoot, rawPath)
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		slog.Error("mkdir for result html", "err", err)
+	} else if err := writeAtomic(fullPath, buf.Bytes()); err != nil {
+		slog.Error("write result html", "err", err)
+	}
+
+	c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
+}
+
+func parseResultFilename(p string) (result.Key, error) {
+	parts := strings.Split(p, "/")
+	if len(parts) != 4 {
+		return result.Key{}, fmt.Errorf("malformed path")
+	}
+	name := strings.TrimSuffix(parts[3], ".html")
+	fields := strings.Split(name, "-")
+	if len(fields) != 4 {
+		return result.Key{}, fmt.Errorf("malformed filename")
+	}
+	year, err := strconv.ParseInt(fields[1], 10, 16)
+	if err != nil {
+		return result.Key{}, fmt.Errorf("invalid year")
+	}
+	roll, err := strconv.ParseInt(fields[2], 10, 32)
+	if err != nil {
+		return result.Key{}, fmt.Errorf("invalid roll")
+	}
+	reg, err := strconv.ParseInt(fields[3], 10, 64)
+	if err != nil {
+		return result.Key{}, fmt.Errorf("invalid registration")
+	}
+	return result.Key{
+		Exam: "SSC", ExamYear: int16(year), Board: fields[0],
+		Roll: int32(roll), Registration: reg,
+	}, nil
 }

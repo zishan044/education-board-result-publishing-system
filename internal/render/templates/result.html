@@ -1,0 +1,33 @@
+{{define "title"}}{{.Name}} — Roll {{.Roll}}{{end}}
+{{define "content"}}
+<div class="card">
+  <div class="grid">
+    <div><span>Name</span>{{.Name}}</div>
+    <div><span>Roll</span>{{.Roll}}</div>
+    <div><span>Registration</span>{{.Registration}}</div>
+    <div><span>Board</span>{{.Board}}</div>
+    <div><span>Exam</span>{{.Exam}} {{.ExamYear}}</div>
+    <div><span>Institution</span>{{.InstitutionCode}}</div>
+  </div>
+  <div class="gpa {{gpaClass .GPA}}">
+    {{if .Passed}}GPA {{printf "%.2f" .GPA}}{{else}}Not Passed{{end}}
+  </div>
+  <span class="badge {{if .Passed}}pass{{else}}fail{{end}}">{{if .Passed}}PASSED{{else}}FAILED{{end}}</span>
+</div>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead>
+    <tbody>
+    {{range .Subjects}}
+      <tr><td>{{.Name}}</td><td>{{.Marks}}</td><td>{{.Grade}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+
+<div class="actions">
+  <a href="{{pdfURL .}}">Download PDF</a>
+  <a href="/">Search another result</a>
+</div>
+{{end}}

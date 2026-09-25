@@ -1,0 +1,173 @@
+{{define "layout.html"}}<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{block "title" .}}Result Publishing System{{end}}</title>
+    <style>
+      :root {
+        --bg: #0f1220;
+        --card: #171b2e;
+        --text: #e8e9f3;
+        --muted: #9497ad;
+        --accent: #4f8cff;
+        --pass: #3ecf8e;
+        --fail: #ff5d6c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px 16px 64px;
+      }
+      header {
+        margin-bottom: 24px;
+      }
+      header a {
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 6px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .gpa {
+        font-size: 2.2rem;
+        font-weight: 800;
+      }
+      .gpa-perfect,
+      .gpa-good {
+        color: var(--pass);
+      }
+      .gpa-pass {
+        color: #e0c341;
+      }
+      .gpa-fail {
+        color: var(--fail);
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .badge.pass {
+        background: rgba(62, 207, 142, 0.15);
+        color: var(--pass);
+      }
+      .badge.fail {
+        background: rgba(255, 93, 108, 0.15);
+        color: var(--fail);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .grid div span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      form label {
+        display: block;
+        margin: 12px 0 4px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #10152a;
+        color: var(--text);
+        font-size: 1rem;
+      }
+      button {
+        margin-top: 20px;
+        width: 100%;
+        padding: 12px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .actions a {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      footer {
+        margin-top: 32px;
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header><a href="/">Education Board Results</a></header>
+      {{template "content" .}}
+      <footer>Results become final and immutable once published.</footer>
+    </div>
+    {{block "script" .}}{{end}}
+  </body>
+</html>
+{{end}}

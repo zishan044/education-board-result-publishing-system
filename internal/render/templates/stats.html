@@ -1,0 +1,22 @@
+{{define "title"}}Result Statistics{{end}}
+{{define "content"}}
+<div class="card">
+  <div class="grid">
+    <div><span>Total Candidates</span>{{.Total}}</div>
+    <div><span>Passed</span>{{.Passed}}</div>
+    <div><span>Failed</span>{{.Failed}}</div>
+    <div><span>Overall Pass Rate</span>{{printf "%.2f" .PassRate}}%</div>
+  </div>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Board</th><th>Total</th><th>Passed</th><th>Pass Rate</th><th>Avg GPA</th></tr></thead>
+    <tbody>
+    {{range .ByBoard}}
+      <tr><td>{{.Board}}</td><td>{{.Total}}</td><td>{{.Passed}}</td><td>{{printf "%.2f" .PassRate}}%</td><td>{{printf "%.2f" .AvgGPA}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+<p class="muted">Generated {{.GeneratedAt.Format "2 Jan 2006, 15:04 MST"}}</p>
+{{end}}

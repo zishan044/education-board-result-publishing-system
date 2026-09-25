@@ -54,6 +54,26 @@ services:
       replicas: 3
       restart_policy:
         condition: on-failure
+  
+  sitegen:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ebrps-api:latest
+    entrypoint: ["/app/sitegen"]
+    command:
+      - "-db=postgres://${POSTGRES_USER:-results}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-results}?sslmode=disable"
+      - "-out=/site"
+      - "-exam=SSC"
+      - "-year=2026"
+    volumes:
+      - site_data:/site
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ebrps
+    profiles: ["tools"] 
 
   prometheus:
     image: prom/prometheus:v3.0.1
