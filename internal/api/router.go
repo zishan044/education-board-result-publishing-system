@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewRouter(h *Handler, pdfHandler *PDFHandler, mw ...gin.HandlerFunc) *gin.Engine {
@@ -14,6 +15,8 @@ func NewRouter(h *Handler, pdfHandler *PDFHandler, mw ...gin.HandlerFunc) *gin.E
 	r.GET("/healthz", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	r.GET("/internal/generate-pdf/*path", pdfHandler.GeneratePDF)
+
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	v1 := r.Group("/api/v1", mw...)
 	v1.GET("/results", h.GetResult)
