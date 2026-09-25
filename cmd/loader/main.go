@@ -9,18 +9,20 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/zishan044/education-board-result-publishing-system/internal/config"
 	"github.com/zishan044/education-board-result-publishing-system/internal/result"
 )
 
 func main() {
 	var (
-		dbURL       = flag.String("db", os.Getenv("DATABASE_URL"), "Postgres connection string (direct to :5432, not PgBouncer)")
+		dbURL       = flag.String("db", config.DatabaseURLFromEnv(), "Postgres connection string (direct to :5432, not PgBouncer)")
 		count       = flag.Int64("count", 100_000, "number of rows to generate")
 		seed        = flag.Uint64("seed", 1, "RNG seed (same seed = same dataset)")
 		exam        = flag.String("exam", "SSC", "exam name")
 		year        = flag.Int("year", 2026, "exam year")
 		sampleEvery = flag.Int64("sample-every", 0, "record every Nth key for load tests (0 = auto, ~100K keys)")
 		sampleOut   = flag.String("sample-out", "loadtest/keys.json", "where to write the sampled keys")
+		ifEmpty     = flag.Bool("if-empty", false, "skip loading when the results table already contains rows")
 	)
 	flag.Parse()
 
@@ -34,6 +36,17 @@ func main() {
 		log.Fatalf("connect: %v", err)
 	}
 	defer conn.Close(ctx)
+
+	if *ifEmpty {
+		var existing int64
+		if err := conn.QueryRow(ctx, "SELECT count(*) FROM results").Scan(&existing); err != nil {
+			log.Fatalf("check existing results: %v", err)
+		}
+		if existing > 0 {
+			log.Printf("results table already has %d rows; skipping load", existing)
+			return
+		}
+	}
 
 	every := *sampleEvery
 	if every == 0 {
